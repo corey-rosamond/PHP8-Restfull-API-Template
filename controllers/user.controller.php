@@ -20,7 +20,7 @@ class User
         echo "<pre>".print_r($properties, true)."</pre>";
     }
 
-    #[Post('/user-post')]
+    #[Get('/user-post')]
     public function userPost()
     {
 

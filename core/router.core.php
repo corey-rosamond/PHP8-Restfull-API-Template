@@ -2,6 +2,7 @@
 declare(strict_types = 1);
 namespace App\Core
 {
+    require_once("./enums/httpType.enum.php");
     require_once("./attributes/route.attribute.php");
     require_once("./attributes/get.attribute.php");
     require_once("./attributes/post.attribute.php");
@@ -9,10 +10,12 @@ namespace App\Core
     require_once("./attributes/delete.attribute.php");
     require_once("./exceptions/routeNotFound.exception.php");
 
+    use WeakMap;
     use Exception;
     use ReflectionClass;
     use ReflectionException;
     use ReflectionAttribute;
+    use App\Enums\HTTPType;
     use App\Attributes\{
         Route,
         Get,
@@ -22,6 +25,7 @@ namespace App\Core
     };
     use App\Exceptions\RouteNotFoundException;
 
+
     /**
      * This object handles routing of requests to enable an easy implementable restfull api structure.
      */
@@ -30,8 +34,8 @@ namespace App\Core
         /** @var Router|null This is where we hold the current instance of the router or null if it has not been created yet */
         private static ?Router $instance = null;
 
-        /** @var array This is a collection of all the registered routes. */
-        private array $routes = [];
+        /** @var WeakMap This is a collection of all the registered routes. */
+        private WeakMap $routes;
 
         /**
          * This is the routers "__construct" method. This will test if there is
@@ -44,6 +48,7 @@ namespace App\Core
         {
             if (static::$instance === null) {
                 static::$instance = new static();
+                static::$instance->routes = new WeakMap();
             }
             return static::$instance;
         }
@@ -66,7 +71,7 @@ namespace App\Core
                     foreach($attributes as $attribute) {
                         $route = $attribute->newInstance();
                         $this->registerRoute(
-                            $route->method,
+                            HTTPType::from($route->method),
                             $route->path,
                             [
                                 $controller,
@@ -79,9 +84,15 @@ namespace App\Core
             return $this;
         }
 
-        private function registerRoute(string $requestMethod, string $route, callable|array $action)
+        private function registerRoute(HTTPType $requestMethod, string $route, callable|array $action)
         {
-            $this->routes[$requestMethod][$route] = $action;
+            try {
+                $this->routes[$requestMethod][$route] = $action;
+            } catch (\Error $exception)
+            {
+                $this->routes[$requestMethod] = [];
+                $this->routes[$requestMethod][$route] = $action;
+            }
         }
 
         public static function get()
@@ -111,8 +122,8 @@ namespace App\Core
         {
             // Remove any get vars in the url.
             $route = explode('?', $requestURI)[0];
-
-            $callback = $this->routes[strtolower($requestMethod)][$route] ?? null;
+            $requestMethod = HTTPType::from(strtolower($requestMethod));
+            $callback = $this->routes[$requestMethod][$route] ?? null;
 
             // Replace this with a try/catch
             if(!$callback)
