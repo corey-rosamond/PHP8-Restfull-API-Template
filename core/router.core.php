@@ -10,19 +10,14 @@ namespace App\Core
     require_once("./attributes/delete.attribute.php");
     require_once("./exceptions/routeNotFound.exception.php");
 
+    use Error;
     use WeakMap;
     use Exception;
     use ReflectionClass;
     use ReflectionException;
     use ReflectionAttribute;
     use App\Enums\HTTPType;
-    use App\Attributes\{
-        Route,
-        Get,
-        Post,
-        Put,
-        Delete
-    };
+    use App\Attributes\Route;
     use App\Exceptions\RouteNotFoundException;
 
 
@@ -34,7 +29,10 @@ namespace App\Core
         /** @var Router|null This is where we hold the current instance of the router or null if it has not been created yet */
         private static ?Router $instance = null;
 
-        /** @var WeakMap This is a collection of all the registered routes. */
+        /**
+         * @var WeakMap This is a collection of all the registered routes.
+         * @todo check if this can be cached somehow and only updated when the file system changes.
+         */
         private WeakMap $routes;
 
         /**
@@ -88,31 +86,66 @@ namespace App\Core
         {
             try {
                 $this->routes[$requestMethod][$route] = $action;
-            } catch (\Error $exception)
+            } catch (Error $exception)
             {
                 $this->routes[$requestMethod] = [];
                 $this->routes[$requestMethod][$route] = $action;
             }
         }
 
-        public static function get()
+        public static function get(string $route, callable|array $action): self
         {
-
+            $instance = self::create();
+            $instance->registerRoute(
+                HTTPType::Get,
+                $route,
+                $action
+            );
+            return $instance;
         }
 
-        public static function post()
+        public static function post(string $route, callable|array $action): self
         {
-
+            $instance = self::create();
+            $instance->registerRoute(
+                HTTPType::Post,
+                $route,
+                $action
+            );
+            return $instance;
         }
 
-        public static function put()
+        public static function put(string $route, callable|array $action): self
         {
-
+            $instance = self::create();
+            $instance->registerRoute(
+                HTTPType::Put,
+                $route,
+                $action
+            );
+            return $instance;
         }
 
-        public static function delete()
+        public static function head(string $route, callable|array $action): self
         {
+            $instance = self::create();
+            $instance->registerRoute(
+                HTTPType::Head,
+                $route,
+                $action
+            );
+            return $instance;
+        }
 
+        public static function delete(string $route, callable|array $action): self
+        {
+            $instance = self::create();
+            $instance->registerRoute(
+                HTTPType::Delete,
+                $route,
+                $action
+            );
+            return $instance;
         }
 
         /**
