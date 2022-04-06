@@ -71,7 +71,7 @@ namespace App\Core
                     foreach($attributes as $attribute) {
                         $route = $attribute->newInstance();
                         $this->registerRoute(
-                            HTTPType::from($route->method),
+                            $route->method,
                             $route->path,
                             [
                                 $controller,
